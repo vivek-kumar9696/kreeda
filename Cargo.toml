@@ -1,0 +1,17 @@
+[package]
+name = "kreeda"
+version = "0.1.0"
+authors = ["Vivek Kumar <vivek.kr96@outlook.com>"]
+edition = "2024"
+license = "Apache-2.0"
+repository = "https://github.com/vivek-kumar9696/kreeda"
+readme = "README.md"
+keywords = ["game", "engine", "2d"]
+categories = ["game-development", "graphics"]
+description = "2D game engine with a focus on simplicity, performance, and accessibility.."
+
+[dependencies]
+winit = "*"                
+wgpu = "*"                
+once_cell = "*"
+pollster = "*"             
