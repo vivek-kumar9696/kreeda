@@ -11,6 +11,7 @@ use winit::{
 };
 
 use crate::input::mouse_listener::MouseInput as mouse;
+use crate::input::key_listener::KeyInput as key;
 
 pub struct Window {
     width: u32,
@@ -104,8 +105,10 @@ impl ApplicationHandler for App {
         if window_id != state.window.id() {
             return;
         }
-
+        
+        //Initialize input handling
         mouse::handle_event(&event);
+        key::handle_event(&event);
 
         match event {
             WindowEvent::CloseRequested => {
@@ -127,13 +130,21 @@ impl ApplicationHandler for App {
             WindowEvent::RedrawRequested => {
                 if let Err(e) = state.render() {
                     match e {
-                        SurfaceError::Lost => state.reconfigure(),
+                        SurfaceError::Lost | SurfaceError::Outdated => {
+                            eprintln!("Surface error ({e:?}), reconfiguring surface.");
+                            let size = state.window.inner_size();
+                            state.resize(size); // ← triggers reconfigure()
+                        }
                         SurfaceError::OutOfMemory => {
                             eprintln!("Surface out of memory, exiting.");
                             event_loop.exit();
                         }
-                        _ => eprintln!("Render error: {e:?}"),
+                        SurfaceError::Timeout => {
+                            eprintln!("Surface timeout, skipping this frame.");
+                            // You might want to skip this frame, but not exit
+                        }
                     }
+
                 }
             }
             _ => {}
@@ -144,7 +155,10 @@ impl ApplicationHandler for App {
         if let Some(state) = self.state.as_ref() {
             state.window.request_redraw();
         }
+
+        // End of frame for input handling
         mouse::end_frame();
+        key::end_frame();
     }
 }
 
@@ -219,8 +233,8 @@ impl GpuState {
 
         let clear_color = wgpu::Color {
             r: 1.0,
-            g: 0.0,
-            b: 0.0,
+            g: 1.0,
+            b: 1.0,
             a: 1.0,
         };
 
@@ -268,7 +282,7 @@ impl GpuState {
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(self.clear_color),
-                        store: wgpu::StoreOp::Store, // <- fix
+                        store: wgpu::StoreOp::Store,
                     },
                 })],
                 depth_stencil_attachment: None,
